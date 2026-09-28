@@ -179,11 +179,12 @@ label { display: inline-flex; flex-direction: column; gap: .25rem; font-size: .8
 .actions { display: flex; gap: .5rem; flex-wrap: wrap; margin: .6rem 0; }
 
 .toast {
-  position: fixed; left: 50%; bottom: 1.4rem; transform: translate(-50%, 140%); z-index: 60;
+  position: fixed; left: 50%; bottom: 1.4rem; transform: translate(-50%, calc(100% + 2rem)); z-index: 60;
   background: var(--primary); color: var(--primary-fg); padding: .6rem 1.1rem; border-radius: 999px;
-  box-shadow: var(--shadow); transition: transform .25s; font-size: .9rem; max-width: 90vw;
+  box-shadow: var(--shadow); transition: transform .25s, opacity .25s; font-size: .9rem; max-width: 90vw;
+  opacity: 0; visibility: hidden; pointer-events: none;
 }
-.toast.on { transform: translate(-50%, 0); }
+.toast.on { transform: translate(-50%, 0); opacity: 1; visibility: visible; }
 .toast.bad { background: var(--destructive); color: #fff; }
 .foot { padding: 1rem 1.25rem 2rem; color: var(--muted-fg); font-size: .82rem; text-align: center; }
 
@@ -292,3 +293,9 @@ table.grid input.portlabel:disabled { opacity: .5; }
 .port-hover { margin-top: .6rem; padding: .5rem .7rem; background: var(--muted); border: 1px solid var(--border);
   border-radius: var(--radius); font-size: .88rem; min-height: 1.2rem; color: var(--foreground); }
 .port-hover .bad { color: var(--destructive); }
+
+.gh-banner { display:flex; align-items:center; gap:.8rem; flex-wrap:wrap; background:var(--accent);
+  color:var(--accent-foreground,#2a1e12); padding:.6rem 1.1rem; font-size:.9rem; }
+.gh-banner code { background:rgba(0,0,0,.12); padding:.1rem .35rem; border-radius:4px; font-family:ui-monospace,monospace; }
+.gh-banner a { color:inherit; font-weight:600; text-decoration:underline; }
+.gh-banner .x { margin-left:auto; background:none; border:0; font-size:1rem; cursor:pointer; color:inherit; }

@@ -551,6 +551,9 @@ el('#btnVlanAdd').onclick = () => {
 };
 /* ---------- IP-адреси пристроїв (ARP) ---------- */
 let ARP_MAP = {};
+let IP_CACHE = {};   // { mac: {ip, at} } — останні відомі адреси, переживають спорожніння ARP
+try { IP_CACHE = JSON.parse(localStorage.getItem('ipCache') || '{}'); } catch (e) { IP_CACHE = {}; }
+function saveIpCache() { try { localStorage.setItem('ipCache', JSON.stringify(IP_CACHE)); } catch (e) {} }
 function parseArp(txt) {
   const m = {};
   for (const line of txt.split('\n')) {
@@ -560,7 +563,18 @@ function parseArp(txt) {
   return m;
 }
 async function loadArp() {
-  try { ARP_MAP = parseArp(await exec('show ip arp')); } catch (e) {}
+  try {
+    const fresh = parseArp(await exec('show ip arp'));
+    const now = Date.now();
+    for (const mac in fresh) IP_CACHE[mac] = { ip: fresh[mac], at: now };  // освіжаємо кеш
+    // кеш старший за 24 год відкидаємо
+    for (const mac in IP_CACHE) if (now - IP_CACHE[mac].at > 864e5) delete IP_CACHE[mac];
+    saveIpCache();
+    // ARP_MAP = свіже + кеш (свіже має пріоритет)
+    ARP_MAP = {};
+    for (const mac in IP_CACHE) ARP_MAP[mac] = IP_CACHE[mac].ip;
+    for (const mac in fresh) ARP_MAP[mac] = fresh[mac];
+  } catch (e) {}
   return ARP_MAP;
 }
 function ipForMac(mac) { return ARP_MAP[(mac || '').toLowerCase()] || ''; }
@@ -568,6 +582,37 @@ function ipForPort(id) {
   const dev = (MACS || []).find(r => r.port === id && ipForMac(r.mac));
   return dev ? ipForMac(dev.mac) : '';
 }
+
+/* ---------- автовизначення IP у фоні ---------- */
+let autoScanRunning = false, lastAutoScan = 0;
+async function ensureIps(force) {
+  if (autoScanRunning) return;
+  // чи є під'єднані пристрої без відомого IP?
+  const needed = (MACS || []).some(r => {
+    const p = PORTS.find(x => x.id === r.port);
+    return p && p.status === 'connected' && !ipForMac(r.mac);
+  });
+  const stale = Date.now() - lastAutoScan > 5 * 60 * 1000;   // не частіше ніж раз на 5 хв
+  if (!force && (!needed || !stale)) return;
+  autoScanRunning = true; lastAutoScan = Date.now();
+  try {
+    const base = (OV.ip || location.hostname).replace(/\.\d+$/, '');
+    const targets = []; for (let i = 1; i <= 254; i++) targets.push(base + '.' + i);
+    let idx = 0;
+    async function worker() {
+      while (idx < targets.length) {
+        if (paused || document.hidden) { await new Promise(r => setTimeout(r, 500)); continue; }
+        const ip = targets[idx++];
+        try { await fetch(`/level/15/exec/ping/${ip}/repeat/1/timeout/1/CR`, { cache: 'no-store' }); } catch (e) {}
+      }
+    }
+    await Promise.all(Array.from({ length: 6 }, worker));
+    await loadArp();
+    if (TAB === 'mac') drawMac();
+    drawTables();
+  } finally { autoScanRunning = false; }
+}
+
 async function scanIps() {
   const base = (OV.ip || location.hostname).replace(/\.\d+$/, '');
   const btn = $('#btnScanIp'); if (btn) btn.disabled = true;
@@ -1468,6 +1513,33 @@ async function checkPanelVersion() {
 checkPanelVersion();
 setInterval(checkPanelVersion, 10 * 60 * 1000);
 
+/* ---------- перевірка оновлень на GitHub ---------- */
+const GH_REPO = 'roman885-85/ce500-web-panel';
+const GH_RAW = `https://raw.githubusercontent.com/${GH_REPO}/main/panel/version.json`;
+async function checkGithubUpdate() {
+  try {
+    const r = await fetch(GH_RAW, { cache: 'no-store', mode: 'cors' });
+    if (!r.ok) return;
+    const info = await r.json();
+    if (!info.version || !MY_V || info.version <= MY_V) return;
+    showUpdateBanner(info.version, info.notes || '');
+  } catch (e) { /* немає інтернету або GitHub недоступний — тихо */ }
+}
+function showUpdateBanner(ver, notes) {
+  if (document.getElementById('ghBanner')) return;
+  const b = document.createElement('div');
+  b.id = 'ghBanner'; b.className = 'gh-banner';
+  b.innerHTML = `<span>🔔 Доступна нова версія панелі <b>v${ver}</b>${notes ? ' — ' + esc(notes) : ''}. ` +
+    `Щоб оновити, запустіть <code>deploy.sh</code> з комп'ютера у мережі комутатора.</span>` +
+    `<a href="https://github.com/${GH_REPO}/releases" target="_blank" rel="noopener">GitHub</a>` +
+    `<button class="x" title="Сховати">✕</button>`;
+  b.querySelector('button').onclick = () => b.remove();
+  document.body.insertBefore(b, document.body.firstChild);
+}
+checkGithubUpdate();
+setInterval(checkGithubUpdate, 6 * 60 * 60 * 1000);   // раз на 6 годин
+
+
 /* ---------- вкладки, тема, оновлення ---------- */
 let TAB = 'overview';
 $$('#tabs button').forEach(b => b.onclick = () => {
@@ -1505,8 +1577,10 @@ async function refresh(force) {
     drawCards(); drawTables(); drawMonitor();
     drawPanel($('#panelFull'), false); drawPanel($('#panelMini'), true);
     if (TAB === 'mac') await loadMac();
+    else if (tick % 3 === 0) { try { await loadMac(); } catch (e) {} }  // тримаємо MAC-таблицю свіжою для автовизначення IP
     if (TAB === 'cables') drawCables();
     if (SEL) renderDrawer();
+    ensureIps().catch(() => {});   // фонове автовизначення IP нових пристроїв
     tick++;
     $('#footTime').textContent = new Date().toLocaleTimeString('uk-UA');
   } catch (e) { toast('Комутатор не відповідає', true); }
@@ -1517,6 +1591,7 @@ const idle = () => !busy && !paused && !document.hidden && !isAnyEditing();
   await refresh(true);
   await loadSystem(); drawMonitor();
   await loadMac();
+  ensureIps(true).catch(() => {});   // одразу знайти адреси при відкритті панелі
 })();
 setInterval(() => { if (idle()) loadTraffic().catch(() => {}); }, 5000);   // трафік — часто й дешево
 setInterval(() => { if (idle()) refresh(); }, 15000);                      // порти, живлення, помилки

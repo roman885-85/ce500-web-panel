@@ -54,6 +54,14 @@ LANBASE image has no `transport input` on the vty lines and never listens on
   or a port from the diagram.
 - **Event log** as a readable table (which port went up/down and when).
 - **Config save/backup**, **state report to a file**, **firmware upload**.
+- **English / Ukrainian** UI with a switch in the header; defaults to English
+  outside Ukraine/Russia locales.
+- **Automatic IP detection** — the panel keeps a cache of discovered IPs and
+  sweeps the network in the background, so a newly connected device's address
+  shows up on its own.
+- **Update check** — the panel checks GitHub for a newer version and shows a
+  banner. (The switch can't pull from GitHub itself — no DNS and only SSLv3 —
+  so you apply the update with `deploy.sh`; see below.)
 - **Password**, light/dark theme, built-in help.
 
 ## Install
