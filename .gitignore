@@ -1,0 +1,18 @@
+# Проприетарные образы Cisco — НЕ выкладывать (лицензия Cisco)
+*.bin
+*.tar
+images/
+
+# Дампы и резервные копии конкретного устройства
+backup*/
+config/
+*-config*.txt
+
+# Данные, которые панель создаёт на конкретном коммутаторе
+panel/labels.txt
+panel/devices.txt
+panel/panel.json
+
+# Прочее
+.DS_Store
+*.log

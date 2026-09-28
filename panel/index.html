@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Керування комутатором — Відродження</title>
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="style.css?v=21">
+</head>
+<body>
+<header class="top">
+  <img src="logo.png" alt="" class="logo">
+  <div class="brand">
+    <div class="church">Церква «Відродження»</div>
+    <div class="sub">Керування комутатором <span id="hdrModel">Cisco Catalyst Express 500</span></div>
+  </div>
+  <div class="hdr-right">
+    <div class="pill" id="hdrHost">—</div>
+    <div class="pill" id="hdrClock">—</div>
+    <button class="btn" id="btnPause" title="Зупинити автоматичне оновлення даних">Пауза оновлення</button>
+    <button class="btn" id="btnTheme" title="Світла або темна тема">Як у системі</button>
+    <button class="btn primary" id="btnSave" title="Записати поточні налаштування у пам'ять комутатора">Зберегти налаштування</button>
+  </div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="overview" class="on">Огляд</button>
+  <button data-tab="ports">Порти</button>
+  <button data-tab="poe">Живлення PoE</button>
+  <button data-tab="cables">Кабелі</button>
+  <button data-tab="vlans">Мережі VLAN</button>
+  <button data-tab="mac">Пристрої</button>
+  <button data-tab="system">Налаштування</button>
+  <button data-tab="security">Безпека</button>
+  <button data-tab="log">Журнал</button>
+  <button data-tab="tools">Діагностика</button>
+  <button data-tab="term">Термінал</button>
+  <button data-tab="help">Довідка</button>
+  <button data-tab="service">Обслуговування</button>
+</nav>
+
+<main>
+  <!-- ОГЛЯД -->
+  <section id="tab-overview" class="tab on">
+    <div class="cards" id="ovCards"></div>
+    <div class="card">
+      <h2>Системний монітор</h2>
+      <div class="mon-grid">
+        <div class="mon">
+          <div class="mon-head"><span>Процесор</span><b id="monCpuVal">—</b></div>
+          <svg class="spark" id="sparkCpu" viewBox="0 0 300 60" preserveAspectRatio="none"></svg>
+          <div class="mon-foot" id="monCpuFoot">—</div>
+        </div>
+        <div class="mon">
+          <div class="mon-head"><span>Пам'ять</span><b id="monMemVal">—</b></div>
+          <svg class="spark" id="sparkMem" viewBox="0 0 300 60" preserveAspectRatio="none"></svg>
+          <div class="mon-foot" id="monMemFoot">—</div>
+        </div>
+        <div class="mon">
+          <div class="mon-head"><span>Трафік</span><b id="monNetVal">—</b></div>
+          <svg class="spark" id="sparkNet" viewBox="0 0 300 60" preserveAspectRatio="none"></svg>
+          <div class="mon-foot" id="monNetFoot">вхід — · вихід —</div>
+        </div>
+        <div class="mon">
+          <div class="mon-head"><span>Живлення PoE</span><b id="monPoeVal">—</b></div>
+          <svg class="spark" id="sparkPoe" viewBox="0 0 300 60" preserveAspectRatio="none"></svg>
+          <div class="mon-foot" id="monPoeFoot">—</div>
+        </div>
+      </div>
+      <div class="hw" id="hwState"></div>
+    </div>
+
+    <div class="card">
+      <h2>Передня панель</h2>
+      <div id="panelMini" class="panel-view mini"></div>
+      <div class="legend">
+        <span><i class="dot d-link"></i> працює</span>
+        <span><i class="dot d-poe"></i> живить пристрій</span>
+        <span><i class="dot d-idle"></i> вільний</span>
+        <span><i class="dot d-off"></i> вимкнений</span>
+        <span><i class="dot d-err"></i> помилка</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ПОРТИ -->
+  <section id="tab-ports" class="tab">
+    <div class="card">
+      <h2>Передня панель комутатора</h2>
+      <p class="hint">Натисніть на порт, щоб побачити подробиці та керувати ним.</p>
+      <div id="panelFull" class="panel-view"></div>
+      <div id="portHover" class="port-hover">Наведіть на порт, щоб побачити його підпис і стан</div>
+      <div class="legend">
+        <span><i class="dot d-link"></i> працює</span>
+        <span><i class="dot d-poe"></i> живить пристрій</span>
+        <span><i class="dot d-idle"></i> вільний</span>
+        <span><i class="dot d-off"></i> вимкнений</span>
+        <span><i class="dot d-err"></i> помилка</span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Перелік портів</h2>
+      <div class="form-row">
+        <label>Пошук <input type="text" id="portSearch" placeholder="номер порту, підпис або адреса"></label>
+        <button class="btn" id="btnPingAll">Перевірити всі камери</button>
+        <span class="hint" id="pingAllState"></span>
+      </div>
+      <div class="bulk" id="bulkBar" style="display:none">
+        <span>Обрано <b id="bulkCount">0</b></span>
+        <button class="btn" id="bulkPoe">Перезапустити живлення</button>
+        <button class="btn" id="bulkOn">Увімкнути</button>
+        <button class="btn" id="bulkOff">Вимкнути</button>
+        <button class="btn" id="bulkVlan">Перенести в мережу</button>
+        <button class="btn" id="bulkClear">Зняти позначки</button>
+      </div>
+      <table class="grid" id="portTable"></table>
+    </div>
+  </section>
+
+  <!-- POE -->
+  <section id="tab-poe" class="tab">
+    <div class="card">
+      <h2>Бюджет живлення</h2>
+      <div class="budget"><div id="poeBar" class="bar"><span></span></div><div id="poeText" class="budget-text">—</div></div>
+      <p class="hint">Стандарт 802.3af: до 15,4 Вт на порт. Камери PoE+ (30 Вт) цей комутатор не потягне.</p>
+    </div>
+    <div class="card">
+      <h2>Живлення по портах</h2>
+      <table class="grid" id="poeTable"></table>
+    </div>
+  </section>
+
+  <!-- КАБЕЛІ -->
+  <section id="tab-cables" class="tab">
+    <div class="card">
+      <h2>Діагностика кабелів</h2>
+      <p class="hint">Комутатор посилає у кабель імпульс і за відлунням визначає, чи ціла кожна пара жил і на якій відстані пошкодження.
+        Перевірка вільного порту безпечна. На порту з увімкненим пристроєм зв'язок обірветься на кілька секунд.</p>
+      <div class="form-row">
+        <button class="btn primary" id="btnCableFree">Перевірити всі вільні порти</button>
+        <button class="btn" id="btnCableStop" style="display:none">Зупинити</button>
+        <span class="hint" id="cableProgress"></span>
+      </div>
+      <table class="grid" id="cableTable"></table>
+    </div>
+  </section>
+
+  <!-- VLAN -->
+  <section id="tab-vlans" class="tab">
+    <div class="card">
+      <h2>Мережі VLAN</h2>
+      <table class="grid" id="vlanTable"></table>
+    </div>
+    <div class="card">
+      <h2>Додати мережу</h2>
+      <div class="form-row">
+        <label>Номер <input type="number" id="vlanId" min="2" max="4094" placeholder="напр. 20"></label>
+        <label>Назва <input type="text" id="vlanName" placeholder="напр. Kamery"></label>
+        <button class="btn" id="btnVlanAdd">Додати</button>
+      </div>
+      <p class="hint">Усе обладнання зараз в одній мережі (VLAN 1). Окремі VLAN потрібні лише якщо треба відокремити камери від решти — тоді налаштування потрібне ще й на роутері.</p>
+    </div>
+  </section>
+
+  <!-- MAC -->
+  <section id="tab-mac" class="tab">
+    <div class="card">
+      <h2>Пристрої, які бачить комутатор</h2>
+      <p class="hint">Комутатор бачить усі пристрої за апаратною адресою (MAC). IP-адресу він знає лише для тих,
+        хто спілкувався з ним напряму. Кнопка нижче опитує мережу, щоб дізнатися решту адрес.</p>
+      <div class="form-row">
+        <label>Пошук <input type="text" id="macFilter" placeholder="MAC, IP, виробник або порт"></label>
+        <button class="btn primary" id="btnScanIp">Опитати мережу (знайти IP)</button>
+        <span class="hint" id="scanState"></span>
+      </div>
+      <table class="grid" id="macTable"></table>
+    </div>
+  </section>
+
+  <!-- НАЛАШТУВАННЯ -->
+  <section id="tab-system" class="tab">
+    <div class="card">
+      <h2>Мережеві параметри</h2>
+      <div class="form-grid">
+        <label>Ім'я комутатора <input type="text" id="sysHost"></label>
+        <label>IP-адреса <input type="text" id="sysIp"></label>
+        <label>Маска <input type="text" id="sysMask"></label>
+        <label>Шлюз <input type="text" id="sysGw"></label>
+      </div>
+      <p class="warn">Зміна IP-адреси розірве зв'язок із панеллю — далі відкривайте її за новою адресою.</p>
+      <button class="btn primary" id="btnSysSave">Застосувати</button>
+    </div>
+    <div class="card">
+      <h2>Час</h2>
+      <div class="form-row"><label>Сервери часу (NTP) <input type="text" id="sysNtp" placeholder="через кому"></label>
+      <button class="btn" id="btnNtpSave">Зберегти</button></div>
+      <p class="hint" id="clockHint">—</p>
+    </div>
+  </section>
+
+  <!-- БЕЗПЕКА -->
+  <section id="tab-security" class="tab">
+    <div class="card">
+      <h2>Пароль на керування</h2>
+      <p class="hint">Зараз комутатором може керувати будь-хто з вашої мережі — ні пароля, ні входу він не вимагає.
+        Пароль закриє і цю панель, і прямий доступ до комутатора з браузера.</p>
+      <div class="form-row">
+        <label>Новий пароль <input type="password" id="secPwd" placeholder="щонайменше 6 символів"></label>
+        <label>Повторіть <input type="password" id="secPwd2"></label>
+        <button class="btn primary" id="btnSecSet">Встановити пароль</button>
+        <button class="btn" id="btnSecClear">Зняти пароль</button>
+      </div>
+      <p class="hint">Дозволені латинські літери, цифри та знаки <span class="mono" style="padding:.1rem .3rem">! @ # $ % ^ &amp; * ( ) _ . -</span>.
+        Пароль зберігається в цій панелі, щоб вона могла й далі працювати.</p>
+      <p id="secState" class="hint">—</p>
+    </div>
+  </section>
+
+  <!-- ЖУРНАЛ -->
+  <section id="tab-log" class="tab">
+    <div class="card">
+      <h2>Події на портах</h2>
+      <p class="hint">Коли який порт втрачав і відновлював зв'язок. Якщо камера моргає щоночі — це буде видно тут.</p>
+      <div class="form-row">
+        <button class="btn" id="btnLogRefresh">Оновити</button>
+        <label>Показати <select id="logView"><option value="ports">події портів</option><option value="raw">повний журнал</option></select></label>
+      </div>
+      <table class="grid" id="logTable"></table>
+      <pre id="logText" class="mono" style="display:none">—</pre>
+    </div>
+  </section>
+
+  <!-- ДІАГНОСТИКА -->
+  <section id="tab-tools" class="tab">
+    <div class="card">
+      <h2>Перевірка зв'язку</h2>
+      <div class="form-row">
+        <label>Адреса <input type="text" id="pingTarget" value="192.168.1.10"></label>
+        <button class="btn" id="btnPing">Перевірити</button>
+      </div>
+      <pre id="pingOut" class="mono">—</pre>
+    </div>
+    <div class="card">
+      <h2>Команда перегляду</h2>
+      <div class="form-row">
+        <label>Команда <input type="text" id="cmdInput" value="show interfaces status" placeholder="show ..."></label>
+        <button class="btn" id="btnCmd">Виконати</button>
+      </div>
+      <p class="hint">Дозволені лише команди перегляду: show, ping, dir, more.</p>
+      <pre id="cmdOut" class="mono">—</pre>
+    </div>
+      <div class="card">
+      <h2>Дзеркалювання порту</h2>
+      <p class="hint">Комутатор скопіює весь трафік обраного порту на інший. Підключіть у нього ноутбук — і побачите,
+        що саме передає камера. На роботу самої камери це не впливає.</p>
+      <div class="form-row">
+        <label>Звідки копіювати <select id="spanSrc"></select></label>
+        <label>Куди подати копію <select id="spanDst"></select></label>
+        <button class="btn primary" id="btnSpanOn">Увімкнути</button>
+        <button class="btn" id="btnSpanOff">Вимкнути</button>
+      </div>
+      <p class="hint" id="spanState">—</p>
+    </div>
+    <div class="card">
+      <h2>Історія навантаження процесора</h2>
+      <p class="hint">Це власні графіки комутатора — за останню хвилину, годину й добу.</p>
+      <button class="btn" id="btnCpuHist">Показати</button>
+      <pre id="cpuHist" class="mono" style="display:none">—</pre>
+    </div>
+  </section>
+
+  <!-- ТЕРМІНАЛ -->
+  <section id="tab-term" class="tab">
+    <div class="card">
+      <h2>Термінал комутатора</h2>
+      <p class="hint">Команди виконуються на комутаторі так само, як у справжній консолі.
+        <b>Tab</b> — доповнити команду, <b>?</b> наприкінці — підказка, <b>стрілки ↑ ↓</b> — попередні команди. Сюди можна <b>перетягнути файл із командами</b> (виконає їх) або <b>порт зі схеми</b> (підставить його в команду).
+        Команда <span class="mono" style="padding:.1rem .3rem">configure terminal</span> вмикає режим налаштування,
+        <span class="mono" style="padding:.1rem .3rem">exit</span> — виходить назад.</p>
+      <div id="termCheats" class="cheats" style="display:none"></div>
+      <div class="term" id="termOut"></div>
+      <div class="term-input">
+        <span class="prompt" id="termPrompt">SW&gt;</span>
+        <input type="text" id="termIn" autocomplete="off" spellcheck="false" placeholder="введіть команду і натисніть Enter">
+      </div>
+      <div class="form-row">
+        <button class="btn" id="termHelp">Підказки команд</button>
+        <button class="btn" id="termClear">Очистити</button>
+        <button class="btn" id="termSave">Зберегти вивід у файл</button>
+        <span class="hint">Небезпечні команди (видалення, перезавантаження, стирання) спитають підтвердження.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ДОВІДКА -->
+  <section id="tab-help" class="tab">
+    <div class="card">
+      <h2>Що робити, коли…</h2>
+      <div class="form-row"><label>Пошук по довідці <input type="text" id="helpSearch" placeholder="напр. камера, кабель, живлення"></label></div>
+      <div id="helpBody"></div>
+    </div>
+  </section>
+
+  <!-- ОБСЛУГОВУВАННЯ -->
+  <section id="tab-service" class="tab">
+    <div class="card">
+      <h2>Налаштування комутатора</h2>
+      <p class="hint">Поточні налаштування у текстовому вигляді. Кнопкою нижче можна зберегти копію на комп'ютер.</p>
+      <div class="form-row">
+        <button class="btn" id="btnCfgRefresh">Показати</button>
+        <button class="btn" id="btnCfgDownload">Завантажити копію</button>
+        <button class="btn primary" id="btnCfgSave">Записати в пам'ять комутатора</button>
+        <button class="btn" id="btnReport">Зберегти звіт про стан</button>
+      </div>
+      <pre id="cfgText" class="mono">—</pre>
+    </div>
+    <div class="card">
+      <h2>Оновлення програмного забезпечення</h2>
+      <p class="hint">Для майбутніх оновлень: покладіть файл прошивки на комп'ютер у церковній мережі, роздайте його
+        по HTTP і вкажіть тут адресу. Встановлюється лише сам образ — ця панель залишиться на місці.</p>
+      <div class="form-row">
+        <label style="flex:1;min-width:300px">Адреса файлу .tar
+          <input type="text" id="fwUrl" placeholder="http://адреса-комп'ютера:8099/файл-прошивки.tar">
+        </label>
+        <button class="btn primary" id="btnFw">Залити в комутатор</button>
+      </div>
+      <p class="warn">Заливка триває кілька хвилин, не вимикайте живлення. Після неї натисніть «Перезавантажити комутатор».</p>
+      <pre id="fwOut" class="mono">—</pre>
+    </div>
+
+    <div class="card danger-card">
+      <h2>Перезавантаження</h2>
+      <p class="hint">Комутатор вимкнеться приблизно на дві хвилини. Усі камери на цей час залишаться без живлення.</p>
+      <button class="btn danger" id="btnReload">Перезавантажити комутатор</button>
+    </div>
+  </section>
+</main>
+
+<aside id="drawer" class="drawer">
+  <div class="drawer-head">
+    <h2 id="drawerTitle">Порт</h2>
+    <button class="x" id="drawerClose">✕</button>
+  </div>
+  <div id="drawerBody"></div>
+</aside>
+<div id="scrim" class="scrim"></div>
+<div id="toast" class="toast"></div>
+<footer class="foot">Комутатор <span id="footIp">—</span> · оновлено <span id="footTime">—</span></footer>
+<script src="app.js?v=21"></script>
+</body>
+</html>
