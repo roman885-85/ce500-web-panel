@@ -13,6 +13,16 @@ original Cisco Device Manager did.
 > HTML/CSS/JS in `panel/` — translating strings or swapping the logo/brand is
 > straightforward. See **Make it yours** below.
 
+## Screenshots
+
+**Overview** — model, uptime, PoE budget, live CPU/memory/traffic monitor and the front-panel port map:
+
+![Overview](docs/screenshot-overview.png)
+
+**Terminal** — a real in-browser CLI with modes, history, `?`/Tab hints and drag-and-drop:
+
+![Terminal](docs/screenshot-terminal.png)
+
 ## Why this exists
 
 These switches are end-of-life. On many second-hand units the flash has been
