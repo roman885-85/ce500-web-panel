@@ -89,6 +89,13 @@ If the flash was wiped and the switch is on its emergency image, `write memory`
 won't work there — the panel and scripts fall back to
 `copy running-config flash:config.text` automatically.
 
+
+> **Note on CSS.** The switch's file server serves every file as `text/html`,
+> and modern browsers refuse to apply an external stylesheet with that type.
+> So the CSS is inlined into `index.html`/`home.html` at deploy time by
+> `scripts/build-inline.sh` (run automatically by `deploy.sh`). Edit
+> `panel/style.css` as the source of truth and redeploy.
+
 ## Scripts
 
 All scripts take `SW` (switch IP, default `192.168.1.250`) and `SWAUTH`
