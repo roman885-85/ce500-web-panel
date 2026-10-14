@@ -1,1 +1,1 @@
-{ "version": 25, "notes": "Trunk shows the router IP at the cable end" }
+{ "version": 26, "notes": "IP column rename, sticky table headers" }

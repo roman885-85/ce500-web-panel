@@ -326,7 +326,7 @@ function drawTables() {
   const list = PORTS.filter(p => !q || p.id.toLowerCase().includes(q)
     || (p.label || '').toLowerCase().includes(q) || labelIp(p.id).includes(q));
   $('#portTable').innerHTML =
-    `<tr><th style="width:2rem"></th><th>Порт</th><th>Підпис</th><th>Камера</th><th>Стан</th><th>Швидкість</th><th>Трафік</th>
+    `<tr><th style="width:2rem"></th><th>Порт</th><th>Підпис</th><th>IP-адреса</th><th>Стан</th><th>Швидкість</th><th>Трафік</th>
       <th>Помилки</th><th>VLAN</th><th>Живлення</th><th></th></tr>` +
     list.map(p => `<tr><td><input type="checkbox" class="mark" data-id="${p.id}" ${marked.has(p.id) ? 'checked' : ''}></td>
       <td><b>${p.id}</b>${p.secured ? ' <span class="tag" title="прив’язаний пристрій">🔒</span>' : ''}</td>
