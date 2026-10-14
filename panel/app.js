@@ -251,8 +251,9 @@ function showPortHover(id) {
   if (p.label) bits.push(esc(p.label));
   bits.push(statusText(p));
   if (p.poeOper === 'on') bits.push(p.poeWatts.toFixed(1) + ' Вт');
-  const ip = labelIp(p.id) || ipForPort(p.id);
-  if (ip) bits.push(esc(ip));
+  const manualIp = labelIp(p.id);
+  if (manualIp) bits.push(esc(manualIp));
+  else { const info = portIpInfo(p.id); if (info.uplink) bits.push(`магістраль · ${info.count} пристроїв` + (info.gatewayIp ? ` · роутер ${info.gatewayIp}` : '')); else if (info.ip) bits.push(esc(info.ip)); }
   if (p.errors) bits.push(`<span class="bad">помилок: ${p.errors}</span>`);
   el.innerHTML = bits.join(' · ');
 }
@@ -331,11 +332,16 @@ function drawTables() {
       <td><b>${p.id}</b>${p.secured ? ' <span class="tag" title="прив’язаний пристрій">🔒</span>' : ''}</td>
       <td>${esc(p.label || '')}</td>
       <td>${(() => {
-          const manual = labelIp(p.id), auto = ipForPort(p.id), ip = manual || auto;
-          if (!ip) return '—';
-          const src = manual ? '' : ' <span class="hint">(в мережі)</span>';
-          const state = manual ? (p.alive ? (p.alive.ok ? '<span class="tag ok">відповідає</span>' : '<span class="tag err">не відповідає</span>') : '<span class="tag">не перевірено</span>') : '';
-          return `<span class="hint">${esc(ip)}${src}</span>${state ? '<br>' + state : ''}`;
+          const manual = labelIp(p.id);
+          if (!manual) {
+            const info = portIpInfo(p.id);
+            if (info.uplink) return `<span class="tag" title="за цим портом ${info.count} пристроїв — це магістраль">магістраль · ${info.count}</span>`
+              + (info.gatewayIp ? `<br><span class="hint">роутер ${esc(info.gatewayIp)}</span>` : '');
+            if (info.ip) return `<span class="hint">${esc(info.ip)} <span class="hint">(в мережі)</span></span>`;
+            return '—';
+          }
+          const state = p.alive ? (p.alive.ok ? '<span class="tag ok">відповідає</span>' : '<span class="tag err">не відповідає</span>') : '<span class="tag">не перевірено</span>';
+          return `<span class="hint">${esc(manual)}</span><br>${state}`;
         })()}</td>
       <td>${tag(p)}</td>
       <td class="num">${p.status === 'connected' ? esc(p.speed.replace('a-', '')) + ' / ' + esc(p.duplex.replace('a-', '')) : '—'}</td>
@@ -430,7 +436,12 @@ function renderDrawer() {
       <dt>Мережа VLAN</dt><dd>${esc(p.vlan)}</dd>
       <dt>Живлення</dt><dd>${isFa ? (p.poeOper === 'on' ? p.poeWatts.toFixed(1) + ' Вт, клас ' + esc(p.poeClass)
         : (p.poeAdmin === 'auto' ? 'увімкнене, пристрою немає' : 'вимкнене')) : 'немає на гігабітних'}</dd>
-      <dt>Пристрій</dt><dd>${dev.length ? dev.map(d => esc(d.mac) + (vendor(d.mac) ? ' · ' + esc(vendor(d.mac)) : '')).join('<br>') : 'не видно'}</dd>
+      <dt>${dev.length > 2 ? 'Магістраль' : 'Пристрій'}</dt><dd>${dev.length
+        ? (dev.length > 2 ? (() => { const gi = portIpInfo(p.id).gatewayIp;
+            return (gi ? `Кабель під'єднано до роутера <b>${esc(gi)}</b>.<br>` : '') + `За портом <b>${dev.length} пристроїв</b>:<br>`; })() : '')
+          + dev.map(d => { const ip = ipForMac(d.mac); const isGw = ip && ip === OV.gateway;
+              return (ip ? '<b>' + esc(ip) + '</b>' + (isGw ? ' (роутер)' : '') + ' · ' : '') + esc(d.mac) + (vendor(d.mac) ? ' · ' + esc(vendor(d.mac)) : ''); }).join('<br>')
+        : 'не видно'}</dd>
       <dt>Прив'язка</dt><dd>${p.secured ? 'увімкнена — чужий пристрій не запрацює' : 'немає'}</dd>
     </dl>
     <label style="width:100%">Підпис порту<input type="text" id="dLabel" value="${esc(p.label)}" placeholder="напр. Камера над входом"></label>
@@ -581,6 +592,28 @@ function ipForMac(mac) { return ARP_MAP[(mac || '').toLowerCase()] || ''; }
 function ipForPort(id) {
   const dev = (MACS || []).find(r => r.port === id && ipForMac(r.mac));
   return dev ? ipForMac(dev.mac) : '';
+}
+function portMacs(id) { return (MACS || []).filter(r => r.port === id); }
+// порт із багатьма пристроями — це магістраль/аплінк (до роутера чи іншого комутатора),
+// показувати один IP там неправильно
+function gatewayMac() {
+  // MAC шлюза (роутера): шукаємо в ARP запис, чий IP == шлюз
+  const gw = OV.gateway;
+  if (!gw) return '';
+  for (const mac in ARP_MAP) if (ARP_MAP[mac] === gw) return mac;
+  return '';
+}
+function portIpInfo(id) {
+  const macs = portMacs(id);
+  const withIp = macs.filter(r => ipForMac(r.mac)).map(r => ipForMac(r.mac));
+  if (macs.length > 2) {
+    // магістраль: якщо за портом є шлюз — це пряме підключення до роутера
+    const gwMac = gatewayMac();
+    const gwHere = gwMac && macs.some(r => r.mac.toLowerCase() === gwMac);
+    return { uplink: true, count: macs.length, ips: withIp, gatewayIp: gwHere ? OV.gateway : '' };
+  }
+  if (withIp.length) return { uplink: false, ip: withIp[0] };
+  return {};
 }
 
 /* ---------- автовизначення IP у фоні ---------- */
