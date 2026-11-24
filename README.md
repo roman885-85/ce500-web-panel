@@ -70,15 +70,15 @@ You need a machine on the same LAN as the switch (the switch downloads the files
 from it over HTTP). Then:
 
 ```sh
-SW=192.168.1.250 scripts/deploy.sh
+SW=<switch-ip> scripts/deploy.sh
 ```
 
 This serves `panel/` over HTTP and copies each file into `flash:html/` on the
 switch. Point the switch's web server at that folder once:
 
 ```sh
-SW=192.168.1.250 scripts/sw.sh "configure terminal ; ip http path flash:html"
-SW=192.168.1.250 scripts/sw.sh "write memory"
+SW=<switch-ip> scripts/sw.sh "configure terminal ; ip http path flash:html"
+SW=<switch-ip> scripts/sw.sh "write memory"
 ```
 
 Open `http://<switch-ip>/` and you're in. After each redeploy, bump the `?v=N`
@@ -98,7 +98,7 @@ won't work there — the panel and scripts fall back to
 
 ## Scripts
 
-All scripts take `SW` (switch IP, default `192.168.1.250`) and `SWAUTH`
+All scripts take `SW` (switch IP, required) and `SWAUTH`
 (`user:pass`, default `admin:admin`) as environment variables.
 
 | Script | What it does |

@@ -1,7 +1,7 @@
 #!/bin/sh
-# Повернути збережений конфіг у комутатор. Запускати з церковної мережі.
-SW=${SW:-192.168.1.250}; SWAUTH=${SWAUTH:-admin:admin}
-MY=$(ipconfig getifaddr en0 2>/dev/null)
+# Повернути збережений конфіг у комутатор. Запускати з мережі, де стоїть комутатор.
+SW=${SW:?вкажіть адресу комутатора: SW=<адреса> $0 …}; SWAUTH=${SWAUTH:-admin:admin}
+MY=$(ipconfig getifaddr en0 2>/dev/null || hostname -I 2>/dev/null | awk '{print $1}')   # macOS || Linux
 DIR=$(dirname "$0")/../config
 [ -f "$DIR/running-config-2026-09-21.txt" ] || { echo "немає файлу конфігу"; exit 1; }
 ping -c1 -W 1000 "$SW" >/dev/null 2>&1 || { echo "комутатор $SW не відповідає"; exit 1; }

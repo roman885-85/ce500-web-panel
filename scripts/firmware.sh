@@ -1,13 +1,13 @@
 #!/bin/sh
-# Заливка прошивки в комутатор. Запускати з церковної мережі.
+# Заливка прошивки в комутатор. Запускати з мережі, де стоїть комутатор.
 # Використання: ./firmware.sh ~/Downloads/ce500-lanbasek9-tar.122-25.SEG6.tar
-SW=${SW:-192.168.1.250}
+SW=${SW:?вкажіть адресу комутатора: SW=<адреса> $0 …}
 SWAUTH=${SWAUTH:-admin:admin}
 FILE="$1"
 [ -f "$FILE" ] || { echo "Вкажіть файл прошивки: ./firmware.sh шлях/до/файлу.tar"; exit 1; }
-MY=$(ipconfig getifaddr en0 2>/dev/null)
+MY=$(ipconfig getifaddr en0 2>/dev/null || hostname -I 2>/dev/null | awk '{print $1}')   # macOS || Linux
 [ -z "$MY" ] && { echo "не визначив адресу цього комп'ютера"; exit 1; }
-ping -c1 -W 1000 "$SW" >/dev/null 2>&1 || { echo "комутатор $SW не відповідає — ви в церковній мережі?"; exit 1; }
+ping -c1 -W 1000 "$SW" >/dev/null 2>&1 || { echo "комутатор $SW не відповідає — ви в тій самій мережі, що й комутатор?"; exit 1; }
 
 DIR=$(cd "$(dirname "$FILE")" && pwd); NAME=$(basename "$FILE")
 SIZE=$(($(stat -f%z "$FILE") / 1048576))
